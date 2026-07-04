@@ -5,7 +5,6 @@
 Escriba el codigo que ejecute la accion solicitada en cada pregunta.
 """
 
-
 def pregunta_01():
     """
     La información requerida para este laboratio esta almacenada en el
@@ -71,3 +70,116 @@ def pregunta_01():
 
 
     """
+
+    import glob
+    import os
+    import re
+    import zipfile
+    import nltk
+    import pandas as pd
+    from nltk.tokenize import word_tokenize
+
+# Asegurar descargas de NLTK
+    nltk.download("stopwords", quiet=True)
+
+
+
+    zip_path = "files/input.zip"
+    if os.path.exists(zip_path):
+        with zipfile.ZipFile(zip_path, "r") as zip_ref:
+            zip_ref.extractall("files")  # Se extrae dentro de la carpeta files/
+
+    # -------------------------------------------------------------------------
+    # 2. Definición interna de funciones del pipeline
+    # -------------------------------------------------------------------------
+    def load_data(input_directory):
+        """Carga datos de subcarpetas usando rutas profundas (*.txt)"""
+        sequence = []
+        # Buscamos archivos .txt dentro de las subcarpetas de sentimiento
+        files = glob.glob(f"{input_directory}/**/*.txt", recursive=True)
+
+        for file in files:
+            file_clean = file.replace("\\", "/")
+            if os.path.isfile(file_clean):
+                # Extraemos el sentimiento del nombre de la carpeta contenedora
+                sentiment = file_clean.split("/")[-2]
+                with open(file_clean, "rt", encoding="utf-8") as f:
+                    raw_text = f.read()
+                    sequence.append((file_clean, sentiment, raw_text))
+        return sequence
+
+    def clean_text(sequence):
+        cleaned_sequence = []
+        for file, sentiment, text in sequence:
+            cleaned_text = re.sub(r"\n", " ", text)
+            cleaned_text = re.sub(r"\s+", " ", cleaned_text)
+            cleaned_text = cleaned_text.strip()
+            cleaned_text = cleaned_text.lower()
+            cleaned_sequence.append((file, sentiment, cleaned_text))
+        return cleaned_sequence
+
+    def tokenize(sequence):
+        tokenized_sequence = []
+        for file, sentiment, text in sequence:
+            tokens = word_tokenize(text)
+            tokenized_sequence.append((file, sentiment, tokens))
+        return tokenized_sequence
+
+    def filter_tokens_b(sequence):
+        filtered_sequence = []
+        for file, sentiment, tokens in sequence:
+            filtered_tokens = [
+                re.sub(r"[^a-zA-Z\s]", " ", token) for token in tokens
+            ]
+            filtered_tokens = [
+                re.sub(r"\s+", " ", token) for token in filtered_tokens
+            ]
+            filtered_tokens = [token.strip() for token in filtered_tokens]
+            filtered_tokens = [token for token in filtered_tokens if token != ""]
+            filtered_sequence.append((file, sentiment, filtered_tokens))
+        return filtered_sequence
+
+    def remove_stopwords(sequence):
+        stop_words = set(nltk.corpus.stopwords.words("english"))
+        filtered_sequence = []
+        for file, sentiment, tokens in sequence:
+            filtered_tokens = [
+                token for token in tokens if token not in stop_words
+            ]
+            filtered_sequence.append((file, sentiment, filtered_tokens))
+        return filtered_sequence
+
+    def run_pipeline(input_dir):
+        """Ejecuta secuencialmente la limpieza sobre la secuencia de datos"""
+        seq = load_data(input_dir)
+        seq = clean_text(seq)
+        seq = tokenize(seq)
+        seq = filter_tokens_b(seq)
+        seq = remove_stopwords(seq)
+        return seq
+
+    def save_to_csv(sequence, output_filepath):
+        """Guarda la secuencia final en formato CSV con el índice requerido"""
+        os.makedirs(os.path.dirname(output_filepath), exist_ok=True)
+
+        data_records = []
+        for _, sentiment, tokens in sequence:
+            phrase = " ".join(tokens)
+            data_records.append({"phrase": phrase, "target": sentiment})
+
+        df = pd.DataFrame(data_records)
+        # Se genera el CSV con índice autoincremental vacío como pide la guía
+        df.to_csv(output_filepath, index=True, index_label="")
+
+    # -------------------------------------------------------------------------
+    # 3. Ejecución del pipeline para TRAIN y TEST
+    # -------------------------------------------------------------------------
+    # Procesar train
+    train_seq = run_pipeline("files/input/train")
+    save_to_csv(train_seq, "files/output/train_dataset.csv")
+
+    # Procesar test
+    test_seq = run_pipeline("files/input/test")
+    save_to_csv(test_seq, "files/output/test_dataset.csv")
+
+pregunta_01()
