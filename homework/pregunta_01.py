@@ -79,29 +79,24 @@ def pregunta_01():
     import pandas as pd
     from nltk.tokenize import word_tokenize
 
-# Asegurar descargas de NLTK
+
     nltk.download("stopwords", quiet=True)
-
-
 
     zip_path = "files/input.zip"
     if os.path.exists(zip_path):
         with zipfile.ZipFile(zip_path, "r") as zip_ref:
             zip_ref.extractall("files")  # Se extrae dentro de la carpeta files/
 
-    # -------------------------------------------------------------------------
-    # 2. Definición interna de funciones del pipeline
-    # -------------------------------------------------------------------------
     def load_data(input_directory):
         """Carga datos de subcarpetas usando rutas profundas (*.txt)"""
         sequence = []
-        # Buscamos archivos .txt dentro de las subcarpetas de sentimiento
+
         files = glob.glob(f"{input_directory}/**/*.txt", recursive=True)
 
         for file in files:
             file_clean = file.replace("\\", "/")
             if os.path.isfile(file_clean):
-                # Extraemos el sentimiento del nombre de la carpeta contenedora
+
                 sentiment = file_clean.split("/")[-2]
                 with open(file_clean, "rt", encoding="utf-8") as f:
                     raw_text = f.read()
@@ -168,17 +163,12 @@ def pregunta_01():
             data_records.append({"phrase": phrase, "target": sentiment})
 
         df = pd.DataFrame(data_records)
-        # Se genera el CSV con índice autoincremental vacío como pide la guía
+
         df.to_csv(output_filepath, index=True, index_label="")
 
-    # -------------------------------------------------------------------------
-    # 3. Ejecución del pipeline para TRAIN y TEST
-    # -------------------------------------------------------------------------
-    # Procesar train
     train_seq = run_pipeline("files/input/train")
     save_to_csv(train_seq, "files/output/train_dataset.csv")
 
-    # Procesar test
     test_seq = run_pipeline("files/input/test")
     save_to_csv(test_seq, "files/output/test_dataset.csv")
 
