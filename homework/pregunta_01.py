@@ -70,7 +70,7 @@ def pregunta_01():
 
 
     """
-    
+
     import glob
     import os
     import re
@@ -81,6 +81,7 @@ def pregunta_01():
 
 
     nltk.download("stopwords", quiet=True)
+    nltk.download("punkt_tab")
 
     zip_path = "files/input.zip"
     if os.path.exists(zip_path):
